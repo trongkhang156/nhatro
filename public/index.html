@@ -3,31 +3,47 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Quản lý Nhà Trọ PWA</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>Quản lý Nhà Trọ</title>
 
-<!-- PWA Manifest -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#16a34a">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#059669">
+
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
   .tab-content { display: none; }
   #rooms { display: block; }
-  .card { border-radius: 0.75rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
   @media print {
     body > * { display: none !important; }
-    #print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; padding: 0; }
-    .invoice-container { width: 300px; margin: 0 auto; padding: 10px; font-size: 12px; line-height: 1.4; border: none !important; }
+    #print-container {
+      display: block !important;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    .invoice-container {
+      width: 300px;
+      margin: 0 auto;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.4;
+      border: none !important;
+    }
   }
 </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
 <header class="bg-green-600 text-white p-4 text-center text-xl font-bold shadow">
-  🏠 Quản lý Nhà Trọ PWA
+  🏠 Quản lý Nhà Trọ
 </header>
 
 <div class="min-h-screen flex flex-col">
-  <!-- Nav tabs -->
+
   <nav class="flex bg-gray-800 text-white shadow-lg">
     <button class="tab flex-1 px-4 py-3 bg-green-700 hover:bg-green-700 transition" data-tab="rooms">Phòng</button>
     <button class="tab flex-1 px-4 py-3 hover:bg-gray-700 transition" data-tab="occupancy">Thuê / Trả</button>
@@ -38,7 +54,6 @@
 
   <main class="p-4 flex-1 space-y-4">
 
-    <!-- Phòng -->
     <section id="rooms" class="tab-content space-y-4">
       <div class="bg-white rounded-xl shadow p-4">
         <h2 class="text-lg font-semibold mb-3 border-b pb-2">➕ Thêm phòng</h2>
@@ -49,10 +64,8 @@
         <button id="addRoomBtn" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Thêm phòng</button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="roomCards"></div>
-
       <div class="bg-white rounded-xl shadow p-4">
-        <h2 class="text-lg font-semibold mb-3 border-b pb-2">📋 Danh sách phòng (bảng)</h2>
+        <h2 class="text-lg font-semibold mb-3 border-b pb-2">📋 Danh sách phòng</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-left table-auto">
             <thead class="bg-gray-100">
@@ -69,68 +82,566 @@
       </div>
     </section>
 
-    <!-- Các tab khác giữ nguyên như code cũ -->
-    <section id="occupancy" class="tab-content space-y-4"></section>
-    <section id="invoice" class="tab-content space-y-4"></section>
-    <section id="history" class="tab-content space-y-4"></section>
-    <section id="settings" class="tab-content space-y-4"></section>
+    <section id="occupancy" class="tab-content space-y-4">
+      <div class="bg-white rounded-xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-3 border-b pb-2">🔑 Thuê phòng</h2>
+        <div class="grid sm:grid-cols-3 gap-3">
+          <select id="occupRoom" class="p-2 border rounded col-span-2">
+            <option value="">-- Chọn phòng trống --</option>
+          </select>
+          <input id="tenantName" placeholder="Tên người thuê" class="p-2 border rounded" />
+        </div>
+        <button id="rentBtn" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Thuê phòng</button>
+      </div>
+
+      <div class="bg-white rounded-xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-3 border-b pb-2">🚪 Trả phòng</h2>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <select id="freeRoom" class="p-2 border rounded">
+            <option value="">-- Chọn (Phòng - Người thuê) --</option>
+          </select>
+          <button id="freeBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">Trả phòng</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="invoice" class="tab-content space-y-4">
+      <div class="bg-white rounded-xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-3 border-b pb-2">🧾 Tạo hóa đơn tháng</h2>
+        <div class="grid sm:grid-cols-2 gap-3 mb-4">
+          <input type="month" id="invoiceMonth" class="p-2 border rounded w-full">
+          <button id="createInvoicesBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Tạo hóa đơn</button>
+        </div>
+        <h3 class="text-md font-medium mb-2">Nhập chỉ số/Phí phát sinh</h3>
+        <div id="invoiceList" class="space-y-3 max-h-96 overflow-y-auto p-2 border rounded bg-gray-50"></div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-3 border-b pb-2">📜 Danh sách hóa đơn</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left table-auto">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="p-3">Mã</th>
+                <th class="p-3">Phòng</th>
+                <th class="p-3 text-right">Tổng (VNĐ)</th>
+                <th class="p-3">Trạng thái</th>
+                <th class="p-3 text-center">Xem/In</th>
+                <th class="p-3 text-center">Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="history" class="tab-content space-y-4">
+      <div class="bg-white rounded-xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-3 border-b pb-2">⏱️ Lịch sử hoạt động</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left table-auto">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="p-3">Thời gian</th>
+                <th class="p-3">Hành động</th>
+                <th class="p-3">Chi tiết</th>
+              </tr>
+            </thead>
+            <tbody id="historyTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="settings" class="tab-content space-y-4">
+      <div class="bg-white rounded-xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-3 border-b pb-2">⚙️ Cài đặt giá dịch vụ</h2>
+        <div class="grid sm:grid-cols-2 gap-3 mb-4">
+          <div>
+            <label class="block mb-1 text-sm font-medium">Giá điện (đ/kWh)</label>
+            <input type="number" id="priceElec" class="p-2 border rounded w-full" min="0">
+          </div>
+          <div>
+            <label class="block mb-1 text-sm font-medium">Giá nước (đ/m³)</label>
+            <input type="number" id="priceWater" class="p-2 border rounded w-full" min="0">
+          </div>
+          <div>
+            <label class="block mb-1 text-sm font-medium">Tiền rác (đ/phòng/tháng)</label>
+            <input type="number" id="priceTrash" class="p-2 border rounded w-full" min="0">
+          </div>
+          <div>
+            <label class="block mb-1 text-sm font-medium">Wifi (đ/tháng)</label>
+            <input type="number" id="priceWifi" class="p-2 border rounded w-full" min="0">
+          </div>
+          <div>
+            <label class="block mb-1 text-sm font-medium">Phí khác cố định (đ/phòng/tháng)</label>
+            <input type="number" id="priceOther" class="p-2 border rounded w-full" min="0">
+          </div>
+        </div>
+        <button id="saveSettingsBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Lưu giá</button>
+      </div>
+    </section>
 
   </main>
 </div>
 
 <div id="print-container" style="display: none;"></div>
 
-<!-- JS cũ giữ nguyên, chỉ thêm render card -->
 <script>
 const API_BASE_URL = 'https://nhatro-mi7x.onrender.com/api';
 
-// đăng ký service worker PWA
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(()=>console.log('SW registered')).catch(console.error);
-}
 
-let globalRoomData = [];
+let globalRoomData = []; 
+let globalSettings = {};
 
-async function fetchAPI(endpoint, method='GET', body=null){
-  const options = {method, headers:{'Content-Type':'application/json'}};
-  if(body) options.body = JSON.stringify(body);
-  return fetch(`${API_BASE_URL}/${endpoint}`, options)
-    .then(async res=>{if(!res.ok){let err={};try{err=await res.json()}catch(e){err={error:`HTTP ${res.status}`}}throw new Error(err.error||`HTTP ${res.status}`)} return res.status===204?{}:res.json()})
-    .catch(e=>{alert(`Lỗi kết nối: ${e.message}`); throw e});
+async function fetchAPI(endpoint, method = 'GET', body = null) {
+  const options = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+  return fetch(`${API_BASE_URL}/${endpoint}`, options).then(async res => {
+    if (!res.ok) {
+        let errorBody = {};
+        try {
+            errorBody = await res.json();
+        } catch (e) {
+            errorBody = { error: `Lỗi HTTP ${res.status}` };
+        }
+        throw new Error(errorBody.error || `HTTP error! status: ${res.status}`);
+    }
+    return res.status === 204 ? {} : res.json();
+  }).catch(error => {
+    alert(`Lỗi kết nối hoặc xử lý: ${error.message}. Đảm bảo server đang chạy.`);
+    throw error; 
+  });
 }
 
 const tabs = document.querySelectorAll('.tab');
-tabs.forEach(tab=>{tab.addEventListener('click',()=>{
-  document.querySelectorAll('.tab-content').forEach(c=>c.style.display='none');
-  tabs.forEach(t=>t.classList.remove('bg-green-700'));
-  const id=tab.dataset.tab;
-  document.getElementById(id).style.display='block';
-  tab.classList.add('bg-green-700');
-})});
+const tabContents = document.querySelectorAll('.tab-content');
 
-function escapeHtml(text){if(!text) return''; return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
-function fmtCurrency(n){return Number(n).toLocaleString('vi-VN')}
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabContents.forEach(c => c.style.display = 'none');
+    tabs.forEach(t => t.classList.remove('bg-green-700'));
 
-async function loadRooms(){
-  const rooms = await fetchAPI('rooms');
-  globalRoomData=rooms;
+    const targetId = tab.dataset.tab;
+    const targetContent = document.getElementById(targetId);
+    if (targetContent) {
+      targetContent.style.display = 'block';
+    }
 
-  // render bảng
-  const tbody=document.getElementById('roomTable'); tbody.innerHTML='';
-  let occupSel='<option value="">-- Chọn phòng trống --</option>';
-  rooms.forEach(r=>{
-    tbody.innerHTML+=`<tr class="border-b hover:bg-gray-50 transition"><td class="p-3 font-medium">${escapeHtml(r.name)}</td><td class="p-3">${fmtCurrency(r.price)}</td><td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded ${r.status==='Đang thuê'?'bg-red-100 text-red-800':'bg-green-100 text-green-800'}">${escapeHtml(r.status||'Trống')}</span></td><td class="p-3 text-center"><button class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition" onclick="deleteRoom('${r._id}')">Xóa</button></td></tr>`;
-    if(r.status==='Trống') occupSel+=`<option value="${r._id}">${escapeHtml(r.name)}</option>`;
+    tab.classList.add('bg-green-700');
   });
+});
 
-  // render card đẹp
-  const cardContainer=document.getElementById('roomCards'); cardContainer.innerHTML='';
-  rooms.forEach(r=>{
-    cardContainer.innerHTML+=`<div class="card p-4 bg-white"><h3 class="font-semibold text-lg">${escapeHtml(r.name)}</h3><p>Giá: ${fmtCurrency(r.price)} VNĐ</p><p>Trạng thái: <span class="font-bold ${r.status==='Đang thuê'?'text-red-600':'text-green-600'}">${escapeHtml(r.status||'Trống')}</span></p></div>`;
+function escapeHtml(text) { if (!text) return ''; return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
+function fmtCurrency(n) { return Number(n).toLocaleString('vi-VN'); }
+
+async function loadRooms() {
+  try {
+    const rooms = await fetchAPI('rooms');
+    globalRoomData = rooms; 
+    
+    const tbody = document.getElementById('roomTable');
+    tbody.innerHTML = '';
+    
+    let occupSel = '<option value="">-- Chọn phòng trống --</option>';
+    rooms.forEach(r => {
+      tbody.innerHTML += `<tr class="border-b hover:bg-gray-50 transition">
+        <td class="p-3 font-medium">${escapeHtml(r.name)}</td>
+        <td class="p-3">${fmtCurrency(r.price)} VNĐ</td>
+        <td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded ${r.status === 'Đang thuê' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">${escapeHtml(r.status || 'Trống')}</span></td>
+        <td class="p-3 text-center">
+          <button class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition" onclick="deleteRoom('${r._id}')">Xóa</button>
+        </td>
+      </tr>`;
+      if (r.status === 'Trống') occupSel += `<option value="${r._id}">${escapeHtml(r.name)}</option>`;
+    });
+    document.getElementById('occupRoom').innerHTML = occupSel;
+    buildInvoiceList(rooms);
+  } catch (e) {
+    console.error("Lỗi loadRooms:", e);
+  }
+}
+
+document.getElementById('addRoomBtn').addEventListener('click', async () => {
+  const name = document.getElementById('roomName').value.trim();
+  const price = +document.getElementById('roomPrice').value;
+  if (!name || isNaN(price) || price <= 0) return alert('Nhập tên và giá thuê hợp lệ.');
+  
+  await fetchAPI('rooms', 'POST', { name, price });
+  
+  document.getElementById('roomName').value = '';
+  document.getElementById('roomPrice').value = '';
+  await loadData();
+});
+
+async function deleteRoom(id) {
+  if (!confirm('Xác nhận xóa phòng? Hành động này sẽ xóa các thông tin thuê liên quan.')) return;
+  await fetchAPI(`rooms/${id}`, 'DELETE');
+  await loadData();
+}
+
+async function loadOccupancies() {
+  try {
+    const data = await fetchAPI('occupancy');
+    
+    let freeHtml = '<option value="">-- Chọn mục để trả phòng --</option>';
+    data.forEach(o => {
+      if (o.active && o.room) {
+        const roomName = o.room.name || 'Phòng';
+        freeHtml += `<option value="${o._id}">${escapeHtml(roomName)} — ${escapeHtml(o.tenant || '')}</option>`;
+      }
+    });
+    document.getElementById('freeRoom').innerHTML = freeHtml;
+  } catch (e) {
+    console.error("Lỗi loadOccupancies:", e);
+  }
+}
+
+document.getElementById('rentBtn').addEventListener('click', async () => {
+  const roomId = document.getElementById('occupRoom').value;
+  const tenant = document.getElementById('tenantName').value.trim();
+  if (!roomId || !tenant) return alert('Chọn phòng và nhập tên người thuê.');
+  
+  await fetchAPI('occupancy', 'POST', { roomId, tenant });
+  
+  document.getElementById('tenantName').value = '';
+  await loadData();
+});
+
+document.getElementById('freeBtn').addEventListener('click', async () => {
+  const occId = document.getElementById('freeRoom').value;
+  if (!occId) return alert('Chọn phòng cần trả.');
+  
+  await fetchAPI(`occupancy/${occId}`, 'DELETE');
+  
+  await loadData();
+});
+
+async function loadHistory() {
+  try {
+    const data = await fetchAPI('history');
+    
+    const tbody = document.getElementById('historyTable');
+    tbody.innerHTML = '';
+    
+    data.forEach(h => {
+      tbody.innerHTML += `<tr class="border-b hover:bg-gray-50 transition">
+        <td class="p-3 text-sm">${new Date(h.createdAt).toLocaleString()}</td>
+        <td class="p-3 font-medium">${escapeHtml(h.action)}</td>
+        <td class="p-3 text-sm">${escapeHtml(h.info)}</td>
+      </tr>`;
+    });
+  } catch (e) {
+    console.error("Lỗi loadHistory:", e);
+  }
+}
+
+async function loadSettings() {
+  try {
+    const s = await fetchAPI('settings');
+    globalSettings = s;
+
+    document.getElementById('priceElec').value = s.priceElec || 3000;
+    document.getElementById('priceWater').value = s.priceWater || 10000;
+    document.getElementById('priceTrash').value = s.priceTrash || 20000;
+    document.getElementById('priceWifi').value = s.priceWifi || 50000;
+    document.getElementById('priceOther').value = s.priceOther || 0; 
+
+  } catch (e) {
+    console.error("Lỗi loadSettings:", e);
+  }
+}
+
+document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+  const s = {
+    priceElec: +document.getElementById('priceElec').value,
+    priceWater: +document.getElementById('priceWater').value,
+    priceTrash: +document.getElementById('priceTrash').value,
+    priceWifi: +document.getElementById('priceWifi').value,
+    priceOther: +document.getElementById('priceOther').value
+  };
+
+  if(Object.values(s).some(val => isNaN(val) || val < 0)) return alert('Giá dịch vụ phải là số không âm.');
+
+  await fetchAPI('settings', 'POST', s);
+  
+  alert('Đã lưu giá dịch vụ thành công!');
+  await loadSettings(); 
+});
+
+function buildInvoiceList(rooms) {
+  const container = document.getElementById('invoiceList');
+  container.innerHTML = '';
+  const roomsInUse = rooms.filter(r => r.status === 'Đang thuê');
+  
+  if (roomsInUse.length === 0) {
+    container.innerHTML = '<p class="text-center text-gray-500 py-4">Chưa có phòng nào đang được thuê.</p>';
+    return;
+  }
+  
+  roomsInUse.forEach(r => {
+    container.innerHTML += `
+      <div class="p-3 border rounded grid sm:grid-cols-6 gap-2 items-center bg-white shadow-sm" data-room-id="${r._id}" data-room-name="${r.name}">
+        <div class="font-semibold text-green-700 col-span-full sm:col-span-1">${escapeHtml(r.name)}</div>
+        <div><input type="number" placeholder="Điện BĐ" class="p-1 border rounded w-full elecBegin" min="0"></div>
+        <div><input type="number" placeholder="Điện KT" class="p-1 border rounded w-full elecEnd" min="0"></div>
+        <div><input type="number" placeholder="Nước BĐ" class="p-1 border rounded w-full waterBegin" min="0"></div>
+        <div><input type="number" placeholder="Nước KT" class="p-1 border rounded w-full waterEnd" min="0"></div>
+        <div class="col-span-full sm:col-span-1"><input type="number" placeholder="Phí khác (Nếu có)" class="p-1 border rounded w-full otherFee" value="0" min="0"></div>
+      </div>`;
   });
 }
 
-document.addEventListener('DOMContentLoaded',()=>{loadRooms();});
+async function createInvoices() {
+  const monthYear = document.getElementById('invoiceMonth').value;
+  if (!monthYear) return alert('Vui lòng chọn tháng để tạo hóa đơn.');
+  
+  const [year, month] = monthYear.split('-').map(Number);
+  
+  const s = globalSettings;
+  if (!s || Object.keys(s).length === 0) {
+    alert('Chưa tải được cài đặt giá dịch vụ. Vui lòng kiểm tra tab Cài đặt.');
+    return;
+  }
+  
+  const items = [];
+  let validInvoiceCount = 0;
+  
+  document.querySelectorAll('#invoiceList > div').forEach(div => {
+    const roomId = div.dataset.roomId;
+    const roomName = div.dataset.roomName;
+    
+    const elecBegin = +div.querySelector('.elecBegin').value;
+    const elecEnd = +div.querySelector('.elecEnd').value;
+    const waterBegin = +div.querySelector('.waterBegin').value;
+    const waterEnd = +div.querySelector('.waterEnd').value;
+    const otherFee = +div.querySelector('.otherFee').value || 0;
+
+    if (isNaN(elecBegin) || isNaN(elecEnd) || isNaN(waterBegin) || isNaN(waterEnd) || 
+        elecEnd < elecBegin || waterEnd < waterBegin || elecBegin < 0 || waterBegin < 0) {
+      console.warn(`Bỏ qua hóa đơn phòng ${roomName} do chỉ số không hợp lệ.`);
+      return; 
+    }
+    
+    items.push({
+      roomId, 
+      roomName, 
+      month, 
+      year, 
+      elecBegin, 
+      elecEnd, 
+      waterBegin, 
+      waterEnd,
+      otherFee
+    });
+    validInvoiceCount++;
+  });
+
+  if (validInvoiceCount === 0) return alert('Không có hóa đơn hợp lệ nào được tạo.');
+
+  await fetchAPI('invoices', 'POST', { invoices: items });
+  
+  alert(`Đã tạo ${validInvoiceCount} hóa đơn thành công cho tháng ${month}/${year}!`);
+  await loadData();
+}
+
+document.getElementById('createInvoicesBtn').addEventListener('click', createInvoices);
+
+async function loadInvoices() {
+  try {
+    const invs = await fetchAPI('invoices');
+    
+    const tbody = document.getElementById('invoiceTable');
+    tbody.innerHTML = '';
+    
+    invs.forEach(i => {
+      const isPaid = i.paid;
+      const roomName = i.roomName || (i.room?.name || 'Phòng'); 
+      
+      tbody.innerHTML += `<tr class="border-b hover:bg-gray-50 transition">
+        <td class="p-3 text-sm font-code">${i.code}</td>
+        <td class="p-3">${escapeHtml(roomName)}</td>
+        <td class="p-3 font-bold text-right text-red-600">${fmtCurrency(i.total)} VNĐ</td>
+        <td class="p-3">
+          <span class="px-2 py-1 text-xs font-semibold rounded ${isPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+            ${isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
+          </span>
+        </td>
+        <td class="p-3 text-center">
+          <button class="bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600 transition" onclick="printInvoice('${i._id}')">In</button>
+        </td>
+        <td class="p-3 text-center">
+          ${!isPaid ? `<button class="bg-blue-500 text-white px-3 py-1 rounded text-sm mb-1 hover:bg-blue-600 transition" onclick="payInvoice('${i._id}', true)">Thanh toán</button>` : `<button class="bg-yellow-500 text-white px-3 py-1 rounded text-sm mb-1 hover:bg-yellow-600 transition" onclick="payInvoice('${i._id}', false)">Hủy TT</button>`}
+          <button class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition" onclick="deleteInvoice('${i._id}')">Xóa</button>
+        </td>
+      </tr>`;
+    });
+  } catch (e) {
+    console.error("Lỗi loadInvoices:", e);
+  }
+}
+
+async function payInvoice(id, paidStatus) {
+  const confirmMsg = paidStatus ? 'Xác nhận hóa đơn này đã được thanh toán?' : 'Xác nhận HỦY trạng thái đã thanh toán?';
+  if (!confirm(confirmMsg)) return;
+  
+  await fetchAPI(`invoices/${id}`, 'PUT', { paid: paidStatus });
+  
+  await loadData();
+}
+
+async function deleteInvoice(id) {
+  if (!confirm('Xác nhận xóa hóa đơn này?')) return;
+  await fetchAPI(`invoices/${id}`, 'DELETE');
+  
+  await loadData();
+}
+
+async function getInvoiceAndSettings(id) {
+  const invs = await fetchAPI('invoices');
+  const invoice = invs.find(i => i._id === id);
+  const settings = await fetchAPI('settings'); 
+  return { invoice, settings };
+}
+
+function generateInvoiceHtml(invoice, settings) {
+  const isPaid = invoice.paid ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN';
+  const monthYear = `${invoice.month}/${invoice.year}`;
+  const total = fmtCurrency(invoice.total);
+  const roomPrice = invoice.roomPrice || (invoice.room?.price || 0);
+  
+  const priceElec = invoice.elecTotal / (invoice.elecUsed || 1) || settings.priceElec || 3000;
+  const priceWater = invoice.waterTotal / (invoice.waterUsed || 1) || settings.priceWater || 10000;
+
+  return `
+    <html>
+    <head>
+      <title>Hóa đơn ${invoice.code}</title>
+      <style>
+        body { font-family: Tahoma, sans-serif; font-size: 11px; margin: 0; padding: 0; }
+        .invoice-container { width: 300px; margin: 0 auto; padding: 10px; border: 1px dashed #000; }
+        .header { text-align: center; margin-bottom: 10px; }
+        .header h1 { font-size: 14px; margin: 0; }
+        .info-line { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .info-line .label { font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th, td { padding: 4px 2px; text-align: left; border-bottom: 1px dotted #ddd; }
+        .text-right { text-align: right; }
+        .total-row { font-weight: bold; background-color: #eee; }
+        .status { text-align: center; font-size: 14px; font-weight: bold; margin-top: 10px; padding: 5px; border: 2px solid ${invoice.paid ? 'green' : 'red'}; }
+        .note { font-style: italic; font-size: 10px; margin-top: 10px; }
+        
+        @media print {
+            .invoice-container { border: none !important; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="invoice-container">
+        <div class="header">
+          <h1>PHIẾU THANH TOÁN TIỀN TRỌ</h1>
+          <p style="margin: 3px 0;">---------------------</p>
+          <p>Kỳ: Tháng ${monthYear}</p>
+        </div>
+        
+        <div style="margin-top: 5px;">
+          <div class="info-line"><span class="label">Phòng:</span> <span>${invoice.roomName || ''}</span></div>
+          <div class="info-line"><span class="label">Mã HĐ:</span> <span>${invoice.code}</span></div>
+        </div>
+        
+        <hr style="margin: 8px 0; border-top: 1px dotted #000;"/>
+        
+        <table>
+          <thead>
+            <tr><th>Dịch vụ</th><th class="text-right">SL/Đơn giá</th><th class="text-right">Thành tiền (VNĐ)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1. Tiền phòng</td><td class="text-right">Phí cố định</td><td class="text-right">${fmtCurrency(roomPrice)}</td></tr>
+            <tr><td>2. Tiền điện</td><td class="text-right">${invoice.elecUsed} kWh x ${fmtCurrency(priceElec)}</td><td class="text-right">${fmtCurrency(invoice.elecTotal)}</td></tr>
+            <tr><td>3. Tiền nước</td><td class="text-right">${invoice.waterUsed} m³ x ${fmtCurrency(priceWater)}</td><td class="text-right">${fmtCurrency(invoice.waterTotal)}</td></tr>
+            <tr><td>4. Phí Wifi</td><td class="text-right">Phí cố định</td><td class="text-right">${fmtCurrency(invoice.wifi)}</td></tr>
+            <tr><td>5. Phí Rác</td><td class="text-right">Phí cố định</td><td class="text-right">${fmtCurrency(invoice.trash)}</td></tr>
+            ${invoice.otherFee > 0 ? `<tr><td>6. Phí khác</td><td class="text-right">Phát sinh</td><td class="text-right">${fmtCurrency(invoice.otherFee)}</td></tr>` : ''}
+          </tbody>
+        </table>
+
+        <hr style="margin: 8px 0; border-top: 1px solid #000;"/>
+
+        <div class="info-line total-row" style="font-size: 12px; padding: 3px 0;">
+          <span>TỔNG CỘNG:</span>
+          <span class="text-right" style="font-size: 14px; color: #d9534f;">${total} VNĐ</span>
+        </div>
+
+        <div class="status" style="color: ${invoice.paid ? 'green' : 'red'};">${isPaid}</div>
+        
+        <p class="note">Xin quý khách kiểm tra kỹ hóa đơn trước khi thanh toán. Cảm ơn!</p>
+        
+        <div style="margin-top: 15px; display: flex; justify-content: space-around; text-align: center;">
+            <div>Người lập phiếu</div>
+            <div>Người thuê</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;}
+
+async function printInvoice(id) {
+  try {
+    const { invoice, settings } = await getInvoiceAndSettings(id);
+
+    if (!invoice) return alert('Không tìm thấy hóa đơn.');
+
+    const printHtml = generateInvoiceHtml(invoice, settings);
+
+    const printWindow = window.open('', '_blank', 'width=350,height=600');
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+      printWindow.print();
+    };
+  } catch (e) {
+    console.error("Lỗi printInvoice:", e);
+  }
+}
+
+
+async function loadData() {
+  await loadSettings(); 
+  await loadRooms(); 
+  await loadOccupancies();
+  await loadInvoices();
+  await loadHistory();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date();
+  const month = (today.getMonth() + 1).toString().padStart(2, '0');
+  const year = today.getFullYear();
+  document.getElementById('invoiceMonth').value = `${year}-${month}`;
+  
+  loadData();
+
+  // 🚀 PWA: ĐĂNG KÝ SERVICE WORKER 
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then((reg) => {
+          console.log('Service Worker đã đăng ký thành công:', reg);
+        })
+        .catch((err) => {
+          console.error('Lỗi đăng ký Service Worker:', err);
+        });
+    });
+  }
+  // 🔚 END PWA
+});
 </script>
 
 </body>
