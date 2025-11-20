@@ -13,30 +13,12 @@
   .tab-content { display: none; }
   #rooms { display: block; }
 
+  /* CSS cho chế độ in (chủ yếu là ẩn giao diện ứng dụng) */
   @media print {
     body > * { display: none !important; }
-    #print-container {
-      display: block !important;
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      z-index: 9999; 
-    }
-    /* Style cho hóa đơn khi in */
-    .invoice-container {
-      width: 300px;
-      margin: 0 auto;
-      padding: 10px;
-      font-size: 12px;
-      line-height: 1.4;
-      border: none !important; 
-    }
-    .invoice-container .header h1 { font-size: 14px; margin: 0; }
-    .invoice-container table { font-size: 11px; }
+    /* Giữ lại print-container nếu bạn muốn dùng lại phương pháp iframe, 
+       nhưng ở phiên bản này, nó không còn được sử dụng. */
+    #print-container { display: none !important; } 
   }
 </style>
 </head>
@@ -198,7 +180,7 @@
 <script>
 // Vui lòng đảm bảo URL này đang hoạt động và không bị lỗi CORS/server down
 const API_BASE_URL = 'https://nhatro-mi7x.onrender.com/api'; 
-
+const PRINT_BASE_URL = 'https://nhatro-mi7x.onrender.com/api/invoices/print'; // Endpoint mới cho in
 
 let globalRoomData = []; 
 let globalSettings = {};
@@ -211,7 +193,8 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
   if (body) {
     options.body = JSON.stringify(body);
   }
-  // Thêm xử lý timeout để dễ phát hiện server down
+  
+  // Xử lý Timeout
   const timeout = 10000; // 10 giây
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -421,7 +404,6 @@ function buildInvoiceList(rooms) {
 }
 
 async function createInvoices() {
-  // Sửa: Lấy tháng và năm từ input number
   const month = +document.getElementById('invoiceMonthInput').value;
   const year = +document.getElementById('invoiceYearInput').value;
 
@@ -528,138 +510,19 @@ async function deleteInvoice(id) {
   await loadData();
 }
 
-async function getInvoiceAndSettings(id) {
-  const invs = await fetchAPI('invoices');
-  const invoice = invs.find(i => i._id === id);
-  const settings = await fetchAPI('settings'); 
-  return { invoice, settings };
-}
+// KHÔNG CẦN generateInvoiceHtml VÌ SERVER SẼ LÀM VIỆC NÀY
 
-function generateInvoiceHtml(invoice, settings) {
-  const isPaid = invoice.paid ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN';
-  const monthYear = `${invoice.month}/${invoice.year}`;
-  const total = fmtCurrency(invoice.total);
-  const roomPrice = invoice.roomPrice || (invoice.room?.price || 0);
-  
-  const priceElec = invoice.elecTotal / (invoice.elecUsed || 1) || settings.priceElec || 3000;
-  const priceWater = invoice.waterTotal / (invoice.waterUsed || 1) || settings.priceWater || 10000;
-
-  return `
-    <html>
-    <head>
-      <title>Hóa đơn ${invoice.code}</title>
-      <style>
-        body { font-family: Tahoma, sans-serif; font-size: 11px; margin: 0; padding: 0; }
-        .invoice-container { width: 300px; margin: 0 auto; padding: 10px; border: 1px dashed #000; }
-        .header { text-align: center; margin-bottom: 10px; }
-        .header h1 { font-size: 14px; margin: 0; }
-        .info-line { display: flex; justify-content: space-between; margin-bottom: 3px; }
-        .info-line .label { font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { padding: 4px 2px; text-align: left; border-bottom: 1px dotted #ddd; }
-        .text-right { text-align: right; }
-        .total-row { font-weight: bold; background-color: #eee; }
-        .status { text-align: center; font-size: 14px; font-weight: bold; margin-top: 10px; padding: 5px; border: 2px solid ${invoice.paid ? 'green' : 'red'}; }
-        .note { font-style: italic; font-size: 10px; margin-top: 10px; }
-        
-        @media print {
-            .invoice-container { border: none !important; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="invoice-container">
-        <div class="header">
-          <h1>PHIẾU THANH TOÁN TIỀN TRỌ</h1>
-          <p style="margin: 3px 0;">---------------------</p>
-          <p>Kỳ: Tháng ${monthYear}</p>
-        </div>
-        
-        <div style="margin-top: 5px;">
-          <div class="info-line"><span class="label">Phòng:</span> <span>${invoice.roomName || ''}</span></div>
-          <div class="info-line"><span class="label">Mã HĐ:</span> <span>${invoice.code}</span></div>
-        </div>
-        
-        <hr style="margin: 8px 0; border-top: 1px dotted #000;"/>
-        
-        <table>
-          <thead>
-            <tr><th>Dịch vụ</th><th class="text-right">SL/Đơn giá</th><th class="text-right">Thành tiền (VNĐ)</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>1. Tiền phòng</td><td class="text-right">Phí cố định</td><td class="text-right">${fmtCurrency(roomPrice)}</td></tr>
-            <tr><td>2. Tiền điện</td><td class="text-right">${invoice.elecUsed} kWh x ${fmtCurrency(priceElec)}</td><td class="text-right">${fmtCurrency(invoice.elecTotal)}</td></tr>
-            <tr><td>3. Tiền nước</td><td class="text-right">${invoice.waterUsed} m³ x ${fmtCurrency(priceWater)}</td><td class="text-right">${fmtCurrency(invoice.waterTotal)}</td></tr>
-            <tr><td>4. Phí Wifi</td><td class="text-right">Phí cố định</td><td class="text-right">${fmtCurrency(invoice.wifi)}</td></tr>
-            <tr><td>5. Phí Rác</td><td class="text-right">Phí cố định</td><td class="text-right">${fmtCurrency(invoice.trash)}</td></tr>
-            ${invoice.otherFee > 0 ? `<tr><td>6. Phí khác</td><td class="text-right">Phát sinh</td><td class="text-right">${fmtCurrency(invoice.otherFee)}</td></tr>` : ''}
-          </tbody>
-        </table>
-
-        <hr style="margin: 8px 0; border-top: 1px solid #000;"/>
-
-        <div class="info-line total-row" style="font-size: 12px; padding: 3px 0;">
-          <span>TỔNG CỘNG:</span>
-          <span class="text-right" style="font-size: 14px; color: #d9534f;">${total} VNĐ</span>
-        </div>
-
-        <div class="status" style="color: ${invoice.paid ? 'green' : 'red'};">${isPaid}</div>
-        
-        <p class="note">Xin quý khách kiểm tra kỹ hóa đơn trước khi thanh toán. Cảm ơn!</p>
-        
-        <div style="margin-top: 15px; display: flex; justify-content: space-around; text-align: center;">
-            <div>Người lập phiếu</div>
-            <div>Người thuê</div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;}
-
-async function printInvoice(id) {
-  try {
-    const { invoice, settings } = await getInvoiceAndSettings(id);
-
-    if (!invoice) return alert('Không tìm thấy hóa đơn.');
-
-    const printHtml = generateInvoiceHtml(invoice, settings);
-
-    // FIX LỖI IN TRÊN IOS/SAFARI: Dùng iframe tạm thời thay vì window.open
-    const printContainer = document.getElementById('print-container');
-    printContainer.innerHTML = ''; 
-
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.position = 'absolute';
-    iframe.style.border = '0';
-    iframe.id = 'printIframe';
+function printInvoice(id) {
+    // Sửa: Mở URL API in trong tab mới (dựa trên cách làm của dự án kho)
+    // Server backend cần phải xử lý endpoint này và trả về HTML/lệnh in.
+    const printUrl = `${PRINT_BASE_URL}/${id}`;
     
-    printContainer.appendChild(iframe);
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(printHtml);
-    doc.close();
-
-    iframe.onload = function() {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      // Tùy chọn: Xóa iframe sau khi in xong
-      setTimeout(() => printContainer.innerHTML = '', 1000); 
-    };
-
-    printContainer.style.display = 'block';
-
-  } catch (e) {
-    console.error("Lỗi printInvoice:", e);
-    alert('Lỗi khi chuẩn bị in hóa đơn.');
-  }
+    // Mở URL này trong một tab mới, đây là phương pháp đáng tin cậy nhất trên iOS/Safari
+    window.open(printUrl, '_blank'); 
 }
 
 
 async function loadData() {
-  // Bắt đầu tải dữ liệu đồng thời để ứng dụng tải nhanh hơn
   await Promise.all([
     loadSettings(), 
     loadRooms(), 
@@ -668,7 +531,6 @@ async function loadData() {
     loadHistory()
   ]).catch(err => {
      console.error("Lỗi tải toàn bộ dữ liệu:", err);
-     // Đã có alert trong fetchAPI, không cần alert lại ở đây
   });
 }
 
@@ -686,6 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 🚀 PWA: ĐĂNG KÝ SERVICE WORKER (Tên file: sw.js)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
+      // Đảm bảo file sw.js tồn tại ở thư mục gốc
       navigator.serviceWorker.register('/sw.js')
         .then((reg) => {
           console.log('Service Worker đã đăng ký thành công:', reg);
