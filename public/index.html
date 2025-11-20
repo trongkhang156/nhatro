@@ -24,6 +24,7 @@
       height: 100%;
       margin: 0;
       padding: 0;
+      z-index: 9999; /* Đảm bảo nổi lên trên */
     }
     .invoice-container {
       width: 300px;
@@ -108,10 +109,13 @@
     <section id="invoice" class="tab-content space-y-4">
       <div class="bg-white rounded-xl shadow p-4">
         <h2 class="text-lg font-semibold mb-3 border-b pb-2">🧾 Tạo hóa đơn tháng</h2>
-        <div class="grid sm:grid-cols-2 gap-3 mb-4">
-          <input type="month" id="invoiceMonth" class="p-2 border rounded w-full">
-          <button id="createInvoicesBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Tạo hóa đơn</button>
+        
+        <div class="grid sm:grid-cols-4 gap-3 mb-4">
+          <input type="number" id="invoiceMonthInput" placeholder="Tháng (1-12)" min="1" max="12" class="p-2 border rounded w-full col-span-1">
+          <input type="number" id="invoiceYearInput" placeholder="Năm (YYYY)" min="2020" max="2050" class="p-2 border rounded w-full col-span-2">
+          <button id="createInvoicesBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition col-span-1">Tạo hóa đơn</button>
         </div>
+
         <h3 class="text-md font-medium mb-2">Nhập chỉ số/Phí phát sinh</h3>
         <div id="invoiceList" class="space-y-3 max-h-96 overflow-y-auto p-2 border rounded bg-gray-50"></div>
       </div>
@@ -399,10 +403,13 @@ function buildInvoiceList(rooms) {
 }
 
 async function createInvoices() {
-  const monthYear = document.getElementById('invoiceMonth').value;
-  if (!monthYear) return alert('Vui lòng chọn tháng để tạo hóa đơn.');
-  
-  const [year, month] = monthYear.split('-').map(Number);
+  // Sửa: Lấy tháng và năm từ input number
+  const month = +document.getElementById('invoiceMonthInput').value;
+  const year = +document.getElementById('invoiceYearInput').value;
+
+  if (isNaN(month) || month < 1 || month > 12 || isNaN(year) || year < 2000) {
+      return alert('Vui lòng nhập tháng và năm hợp lệ.');
+  }
   
   const s = globalSettings;
   if (!s || Object.keys(s).length === 0) {
@@ -465,7 +472,7 @@ async function loadInvoices() {
       const roomName = i.roomName || (i.room?.name || 'Phòng'); 
       
       tbody.innerHTML += `<tr class="border-b hover:bg-gray-50 transition">
-        <td class="p-3 text-sm font-code">${i.code}</td>
+        <td class="p-3 text-sm font-code">${escapeHtml(i.code)}</td>
         <td class="p-3">${escapeHtml(roomName)}</td>
         <td class="p-3 font-bold text-right text-red-600">${fmtCurrency(i.total)} VNĐ</td>
         <td class="p-3">
@@ -599,15 +606,36 @@ async function printInvoice(id) {
 
     const printHtml = generateInvoiceHtml(invoice, settings);
 
-    const printWindow = window.open('', '_blank', 'width=350,height=600');
-    printWindow.document.write(printHtml);
-    printWindow.document.close();
+    // FIX LỖI IN TRÊN IOS/SAFARI: Dùng iframe tạm thời thay vì window.open
+    const printContainer = document.getElementById('print-container');
+    printContainer.innerHTML = ''; 
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.position = 'absolute';
+    iframe.style.border = '0';
+    iframe.id = 'printIframe';
     
-    printWindow.onload = function() {
-      printWindow.print();
+    printContainer.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(printHtml);
+    doc.close();
+
+    iframe.onload = function() {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      // Tùy chọn: Xóa iframe sau khi in xong
+      setTimeout(() => printContainer.innerHTML = '', 1000); 
     };
+
+    printContainer.style.display = 'block';
+
   } catch (e) {
     console.error("Lỗi printInvoice:", e);
+    alert('Lỗi khi chuẩn bị in hóa đơn.');
   }
 }
 
@@ -622,13 +650,16 @@ async function loadData() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const today = new Date();
-  const month = (today.getMonth() + 1).toString().padStart(2, '0');
+  const month = (today.getMonth() + 1);
   const year = today.getFullYear();
-  document.getElementById('invoiceMonth').value = `${year}-${month}`;
+  
+  // Sửa: Đặt giá trị mặc định cho ô Tháng/Năm mới
+  document.getElementById('invoiceMonthInput').value = month;
+  document.getElementById('invoiceYearInput').value = year;
   
   loadData();
 
-  // 🚀 PWA: ĐĂNG KÝ SERVICE WORKER 
+  // 🚀 PWA: ĐĂNG KÝ SERVICE WORKER (Đã đổi tên thành sw.js)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
