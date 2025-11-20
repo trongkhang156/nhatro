@@ -24,16 +24,19 @@
       height: 100%;
       margin: 0;
       padding: 0;
-      z-index: 9999; /* Đảm bảo nổi lên trên */
+      z-index: 9999; 
     }
+    /* Style cho hóa đơn khi in */
     .invoice-container {
       width: 300px;
       margin: 0 auto;
       padding: 10px;
       font-size: 12px;
       line-height: 1.4;
-      border: none !important;
+      border: none !important; 
     }
+    .invoice-container .header h1 { font-size: 14px; margin: 0; }
+    .invoice-container table { font-size: 11px; }
   }
 </style>
 </head>
@@ -193,7 +196,8 @@
 <div id="print-container" style="display: none;"></div>
 
 <script>
-const API_BASE_URL = 'https://nhatro-mi7x.onrender.com/api';
+// Vui lòng đảm bảo URL này đang hoạt động và không bị lỗi CORS/server down
+const API_BASE_URL = 'https://nhatro-mi7x.onrender.com/api'; 
 
 
 let globalRoomData = []; 
@@ -207,7 +211,15 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
   if (body) {
     options.body = JSON.stringify(body);
   }
-  return fetch(`${API_BASE_URL}/${endpoint}`, options).then(async res => {
+  // Thêm xử lý timeout để dễ phát hiện server down
+  const timeout = 10000; // 10 giây
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/${endpoint}`, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!res.ok) {
         let errorBody = {};
         try {
@@ -215,13 +227,19 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
         } catch (e) {
             errorBody = { error: `Lỗi HTTP ${res.status}` };
         }
-        throw new Error(errorBody.error || `HTTP error! status: ${res.status}`);
+        throw new Error(errorBody.error || `HTTP error! status: ${res.status} (Có thể là lỗi CORS)`);
     }
     return res.status === 204 ? {} : res.json();
-  }).catch(error => {
-    alert(`Lỗi kết nối hoặc xử lý: ${error.message}. Đảm bảo server đang chạy.`);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    let errorMessage = `Lỗi kết nối hoặc xử lý: ${error.message}.`;
+    if (error.name === 'AbortError') {
+      errorMessage = 'Lỗi: Thời gian chờ kết nối (Timeout) đã hết. Server có thể đang ngủ (Render Free Tier) hoặc đường truyền yếu.';
+    }
+    alert(errorMessage);
+    console.error("Fetch API Error:", error);
     throw error; 
-  });
+  }
 }
 
 const tabs = document.querySelectorAll('.tab');
@@ -242,7 +260,7 @@ tabs.forEach(tab => {
   });
 });
 
-function escapeHtml(text) { if (!text) return ''; return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
+function escapeHtml(text) { if (!text) return ''; return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
 function fmtCurrency(n) { return Number(n).toLocaleString('vi-VN'); }
 
 async function loadRooms() {
@@ -641,11 +659,17 @@ async function printInvoice(id) {
 
 
 async function loadData() {
-  await loadSettings(); 
-  await loadRooms(); 
-  await loadOccupancies();
-  await loadInvoices();
-  await loadHistory();
+  // Bắt đầu tải dữ liệu đồng thời để ứng dụng tải nhanh hơn
+  await Promise.all([
+    loadSettings(), 
+    loadRooms(), 
+    loadOccupancies(),
+    loadInvoices(),
+    loadHistory()
+  ]).catch(err => {
+     console.error("Lỗi tải toàn bộ dữ liệu:", err);
+     // Đã có alert trong fetchAPI, không cần alert lại ở đây
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -653,13 +677,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const month = (today.getMonth() + 1);
   const year = today.getFullYear();
   
-  // Sửa: Đặt giá trị mặc định cho ô Tháng/Năm mới
+  // Đặt giá trị mặc định cho ô Tháng/Năm mới
   document.getElementById('invoiceMonthInput').value = month;
   document.getElementById('invoiceYearInput').value = year;
   
   loadData();
 
-  // 🚀 PWA: ĐĂNG KÝ SERVICE WORKER (Đã đổi tên thành sw.js)
+  // 🚀 PWA: ĐĂNG KÝ SERVICE WORKER (Tên file: sw.js)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
